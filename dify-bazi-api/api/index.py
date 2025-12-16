@@ -17,7 +17,7 @@ PROVINCE_LONGITUDE = {
     "香港": 114.17, "澳门": 113.54
 }
 
-@app.route('/api/calculate', methods=['POST'])
+@app.route('/api/index', methods=['POST'])
 def calculate():
     try:
         data = request.json
