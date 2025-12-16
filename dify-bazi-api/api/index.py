@@ -4,29 +4,39 @@ import datetime
 
 app = Flask(__name__)
 
-# 省份经度表
-PROVINCE_LONGITUDE = {
-    "北京": 116.40, "天津": 117.20, "上海": 121.47, "重庆": 106.55,
-    "河北": 114.51, "山西": 112.55, "辽宁": 123.43, "吉林": 125.32,
-    "黑龙江": 126.66, "江苏": 118.76, "浙江": 120.15, "安徽": 117.28,
-    "福建": 119.30, "江西": 115.89, "山东": 117.02, "河南": 113.66,
-    "湖北": 114.34, "湖南": 112.98, "广东": 113.26, "广西": 108.32,
-    "海南": 110.33, "四川": 104.06, "贵州": 106.71, "云南": 102.71,
-    "西藏": 91.11, "陕西": 108.94, "甘肃": 103.82, "青海": 101.78,
-    "宁夏": 106.27, "新疆": 87.62, "内蒙古": 111.77, "台湾": 121.50,
-    "香港": 114.17, "澳门": 113.54
-}
+# --- 1. 这里加上根目录路由，解决主页 404 问题 ---
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    return "<h1>API is running!</h1><p>Please use POST /api/index to calculate.</p>"
 
-@app.route('/api/index', methods=['POST'])
-def calculate():
+# --- 2. 核心计算逻辑 ---
+# 定义计算函数，不绑定路由，方便复用
+def do_calculate():
     try:
         data = request.json
+        # 如果没有数据，尝试从 form 获取（兼容性）
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+            
         birth_time_str = data.get('birth_time')
         gender = data.get('gender', '男')
         province = data.get('province', '北京')
 
         if not birth_time_str:
             return jsonify({"error": "Missing birth_time"}), 400
+
+        # 省份经度表
+        PROVINCE_LONGITUDE = {
+            "北京": 116.40, "天津": 117.20, "上海": 121.47, "重庆": 106.55,
+            "河北": 114.51, "山西": 112.55, "辽宁": 123.43, "吉林": 125.32,
+            "黑龙江": 126.66, "江苏": 118.76, "浙江": 120.15, "安徽": 117.28,
+            "福建": 119.30, "江西": 115.89, "山东": 117.02, "河南": 113.66,
+            "湖北": 114.34, "湖南": 112.98, "广东": 113.26, "广西": 108.32,
+            "海南": 110.33, "四川": 104.06, "贵州": 106.71, "云南": 102.71,
+            "西藏": 91.11, "陕西": 108.94, "甘肃": 103.82, "青海": 101.78,
+            "宁夏": 106.27, "新疆": 87.62, "内蒙古": 111.77, "台湾": 121.50,
+            "香港": 114.17, "澳门": 113.54
+        }
 
         # 解析时间
         dt_obj = datetime.datetime.strptime(birth_time_str, "%Y-%m-%d %H:%M")
@@ -66,6 +76,15 @@ def calculate():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 本地测试用
+# --- 3. 注册 API 路由 (双重保险) ---
+# 无论 Vercel 怎么路由，这两个路径都能通
+@app.route('/api/index', methods=['POST'])
+def api_entry():
+    return do_calculate()
+
+@app.route('/api/calculate', methods=['POST'])
+def api_calc_entry():
+    return do_calculate()
+
 if __name__ == '__main__':
     app.run(port=3000)
